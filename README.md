@@ -28,6 +28,12 @@ npm install
 node react-compiler-unmemo.mjs ./path/to/your/project
 ```
 
+## Origin
+
+I tried using Claude Opus 4.5 to write a script that would remove `useMemo` and `useCallback` from my codebase, but it kept failing. Claude noticed that `sed` couldn't handle this kind of complex pattern matching — the nested parentheses, arrow functions, and dependency arrays made it impossible with simple text replacement. So it wrote this script instead.
+
+I like to keep my code as readable as possible, and all those `useMemo` and `useCallback` hooks were adding extra complexity. I'm glad they're gone from my codebase now. Hope it helps someone else too.
+
 ## Before / After
 
 ```diff
