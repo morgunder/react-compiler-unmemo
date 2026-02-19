@@ -1,6 +1,6 @@
 {
-  "name": "react-compiler-unmemo",
-  "version": "1.0.0",
+  "name": "@thinksharpe/react-compiler-unmemo",
+  "version": "0.5.0",
   "description": "Remove useMemo and useCallback hooks from React codebases to leverage React Compiler automatic optimization",
   "license": "MIT",
   "type": "module",
@@ -25,11 +25,15 @@
     "automatic-memoization"
   ],
   "bin": {
-    "react-compiler-unmemo": "./react-compiler-unmemo.mjs"
+    "react-compiler-unmemo": "react-compiler-unmemo.mjs"
+  },
+  "main": "./react-compiler-unmemo.mjs",
+  "exports": {
+    ".": "./react-compiler-unmemo.mjs"
   },
   "files": [
     "react-compiler-unmemo.mjs",
-    "src/",
+    "helpers/",
     "docs/",
     "README.md",
     "LICENSE"

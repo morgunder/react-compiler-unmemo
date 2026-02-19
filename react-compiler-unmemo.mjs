@@ -13,7 +13,7 @@
  * Options:
  *   --write         Apply changes to files (default is dry-run / preview)
  *   --verbose       Show detailed output for each transformation
- *   --files <glob>  File glob pattern (default: src/**\/*.{tsx,ts})
+ *   --files <glob>  File glob pattern (default: helpers/**\/*.{tsx,ts})
  *   --skip-fix      Skip the type annotation fix step
  *
  * Examples:
@@ -24,8 +24,8 @@
  */
 
 import path from "path";
-import { run as fixTypes } from "./src/fix-type-annotations.mjs";
-import { run as removeHooks } from "./src/remove-hooks.mjs";
+import { run as fixTypes } from "./helpers/fix-type-annotations.mjs";
+import { run as removeHooks } from "./helpers/remove-hooks.mjs";
 
 // ─── CLI ─────────────────────────────────────────────────────────────────────
 

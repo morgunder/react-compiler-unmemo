@@ -74,12 +74,12 @@ cd ./my-app && npx tsc --noEmit
 | *(no flag)* | Preview changes without writing files | **dry-run** |
 | `--write` | Apply changes to files | off |
 | `--verbose` | Log every transformation | off |
-| `--files <glob>` | Limit to specific file patterns | `src/**/*.{tsx,ts}` |
+| `--files <glob>` | Limit to specific file patterns | `helpers/**/*.{tsx,ts}` |
 | `--skip-fix` | Skip type annotation repair step | off |
 
 ```bash
-# Only process hooks directory
-node react-compiler-unmemo.mjs ./my-app --files "src/hooks/**/*.ts" --write
+# Only process specific directory
+node react-compiler-unmemo.mjs ./my-app --files "hooks/**/*.ts" --write
 
 # app directory
 node react-compiler-unmemo.mjs ./my-app --files "app/**/*.{tsx,ts}"
@@ -130,7 +130,7 @@ See [docs/edge-cases.md](./docs/edge-cases.md) for the full list with code examp
 ```
 react-compiler-unmemo/
 ├── react-compiler-unmemo.mjs  # Entry point
-├── src/
+├── helpers/
 │   ├── remove-hooks.mjs # Core hook removal
 │   └── fix-type-annotations.mjs
 ├── docs/

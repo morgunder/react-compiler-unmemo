@@ -1,0 +1,10 @@
+# Development files
+.git
+.gitignore
+package-lock.json
+node_modules
+
+# Editor & OS files
+.DS_Store
+*.swp
+*.swo
