@@ -365,31 +365,31 @@ export function processFile(filePath, { dryRun = false } = {}) {
 
   // Phase 3: Clean up imports
   if (changed) {
-    // Handle: import React, { useMemo, useCallback, ... } from "react";
+    // Handle: import React, { useMemo, useCallback, ... } from "react"; (single or double quotes)
     content = content.replace(
-      /import React, \{([^}]*)\} from "react";/g,
-      (match, imports) => {
+      /import React, \{([^}]*)\} from (["'])react\2;/g,
+      (match, imports, quote) => {
         const cleaned = imports
           .split(",")
           .map((s) => s.trim())
           .filter((s) => s && s !== "useMemo" && s !== "useCallback")
           .join(", ");
-        if (!cleaned) return 'import React from "react";';
-        return `import React, { ${cleaned} } from "react";`;
+        if (!cleaned) return `import React from ${quote}react${quote};`;
+        return `import React, { ${cleaned} } from ${quote}react${quote};`;
       },
     );
 
-    // Handle: import { useMemo, useCallback, ... } from "react";
+    // Handle: import { useMemo, useCallback, ... } from "react"; (single or double quotes)
     content = content.replace(
-      /import \{([^}]*)\} from "react";/g,
-      (match, imports) => {
+      /import \{([^}]*)\} from (["'])react\2;/g,
+      (match, imports, quote) => {
         const cleaned = imports
           .split(",")
           .map((s) => s.trim())
           .filter((s) => s && s !== "useMemo" && s !== "useCallback")
           .join(", ");
         if (!cleaned) return ""; // Remove empty import entirely
-        return `import { ${cleaned} } from "react";`;
+        return `import { ${cleaned} } from ${quote}react${quote};`;
       },
     );
 

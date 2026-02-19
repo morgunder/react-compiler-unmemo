@@ -1,3 +1,4 @@
+
 # react-compiler-unmemo
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=flat-square)](https://opensource.org/licenses/MIT)
@@ -74,12 +75,12 @@ cd ./my-app && npx tsc --noEmit
 | *(no flag)* | Preview changes without writing files | **dry-run** |
 | `--write` | Apply changes to files | off |
 | `--verbose` | Log every transformation | off |
-| `--files <glob>` | Limit to specific file patterns | `helpers/**/*.{tsx,ts}` |
+| `--files <glob>` | Limit to specific file patterns | `src/**/*.{tsx,ts}` |
 | `--skip-fix` | Skip type annotation repair step | off |
 
 ```bash
-# Only process specific directory
-node react-compiler-unmemo.mjs ./my-app --files "hooks/**/*.ts" --write
+# Only process hooks directory
+node react-compiler-unmemo.mjs ./my-app --files "src/hooks/**/*.ts" --write
 
 # app directory
 node react-compiler-unmemo.mjs ./my-app --files "app/**/*.{tsx,ts}"

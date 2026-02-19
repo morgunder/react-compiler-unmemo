@@ -13,7 +13,7 @@
  * Options:
  *   --write         Apply changes to files (default is dry-run / preview)
  *   --verbose       Show detailed output for each transformation
- *   --files <glob>  File glob pattern (default: helpers/**\/*.{tsx,ts})
+ *   --files <glob>  File glob pattern (default: src/**\/*.{tsx,ts})
  *   --skip-fix      Skip the type annotation fix step
  *
  * Examples:
