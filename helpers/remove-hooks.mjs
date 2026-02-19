@@ -221,7 +221,10 @@ export function isInsideStringOrComment(content, idx) {
       i++;
       let templateDepth = 0;
       while (i < content.length) {
-        if (content[i] === "\\" ) { i += 2; continue; }
+        if (content[i] === "\\" ) {
+          if (idx === i || idx === i + 1) return true;
+          i += 2; continue;
+        }
         if (content[i] === "`" && templateDepth === 0) { i++; break; }
         if (content[i] === "$" && content[i + 1] === "{") { templateDepth++; i += 2; continue; }
         if (content[i] === "}" && templateDepth > 0) { templateDepth--; i++; continue; }
@@ -236,7 +239,10 @@ export function isInsideStringOrComment(content, idx) {
       const quote = ch;
       i++;
       while (i < content.length) {
-        if (content[i] === "\\" ) { i += 2; continue; }
+        if (content[i] === "\\" ) {
+          if (idx === i || idx === i + 1) return true;
+          i += 2; continue;
+        }
         if (content[i] === quote) { i++; break; }
         if (i === idx) return true;
         i++;

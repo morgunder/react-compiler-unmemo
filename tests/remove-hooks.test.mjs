@@ -422,6 +422,16 @@ const handler = (e) => handle(e);`;
     const input = `const msg = "She said \\"useMemo(() => 1, [])\\"";`;
     assert.equal(transform(input), input);
   });
+
+  it("handles hook pattern right after escaped char in string", () => {
+    const input = `const msg = "\\nuseMemo(() => 1, [])";`;
+    assert.equal(transform(input), input);
+  });
+
+  it("handles hook pattern after escaped quote in template literal", () => {
+    const input = `const msg = \`test \\\` useMemo(() => 1, [])\`;`;
+    assert.equal(transform(input), input);
+  });
 });
 
 // ─── Multiple hooks in one file ─────────────────────────────────────────────
