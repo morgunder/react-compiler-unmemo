@@ -3,7 +3,7 @@
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=flat-square)](https://opensource.org/licenses/MIT)
 [![Node.js](https://img.shields.io/badge/node-%3E%3D18-brightgreen?style=flat-square)](https://nodejs.org)
-[![Tests](https://img.shields.io/badge/tests-55%20passing-brightgreen?style=flat-square)](./tests)
+[![Tests](https://img.shields.io/badge/tests-62%20passing-brightgreen?style=flat-square)](./tests)
 
 A codemod that removes `useMemo` and `useCallback` from your React codebase so you can adopt [React Compiler](https://react.dev/learn/react-compiler) without the manual cleanup.
 

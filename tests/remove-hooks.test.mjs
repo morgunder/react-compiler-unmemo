@@ -286,6 +286,68 @@ const a = useMemo(() => 1, []);`;
 const a = 1;`;
     assert.equal(transform(input), expected);
   });
+
+  it("handles imports without semicolons", () => {
+    const input = `import { useMemo, useEffect, useRef, useState } from "react"
+const a = useMemo(() => 1, []);`;
+    const expected = `import { useEffect, useRef, useState } from "react"
+const a = 1;`;
+    assert.equal(transform(input), expected);
+  });
+
+  it("removes entire import without semicolon when only hooks", () => {
+    const input = `import { useMemo, useCallback } from "react"
+const a = useMemo(() => 1, []);`;
+    const expected = `
+const a = 1;`;
+    assert.equal(transform(input), expected);
+  });
+
+  it("handles import React, { ... } without semicolon", () => {
+    const input = `import React, { useMemo, useState } from "react"
+const a = useMemo(() => 1, []);`;
+    const expected = `import React, { useState } from "react"
+const a = 1;`;
+    assert.equal(transform(input), expected);
+  });
+
+  it("import React, { useMemo } without semicolon collapses to import React", () => {
+    const input = `import React, { useMemo } from "react"
+const a = useMemo(() => 1, []);`;
+    const expected = `import React from "react"
+const a = 1;`;
+    assert.equal(transform(input), expected);
+  });
+
+  it("handles single-quote imports without semicolons", () => {
+    const input = `import { useMemo, useState } from 'react'
+const a = useMemo(() => 1, []);`;
+    const expected = `import { useState } from 'react'
+const a = 1;`;
+    assert.equal(transform(input), expected);
+  });
+
+  it("removes both useMemo and useCallback without semicolons", () => {
+    const input = `import { useMemo, useCallback, useState } from "react"
+const a = useMemo(() => 1, []);
+const b = useCallback(() => 2, []);`;
+    const expected = `import { useState } from "react"
+const a = 1;
+const b = () => 2;`;
+    assert.equal(transform(input), expected);
+  });
+
+  it("preserves no-semicolon style alongside other no-semicolon imports", () => {
+    const input = `import { UserIcon } from "lucide-react"
+import * as React from "react"
+import { useEffect, useMemo, useRef, useState } from "react"
+const value = useMemo(() => compute(a), [a]);`;
+    const expected = `import { UserIcon } from "lucide-react"
+import * as React from "react"
+import { useEffect, useRef, useState } from "react"
+const value = compute(a);`;
+    assert.equal(transform(input), expected);
+  });
 });
 
 // ─── Multi-line hooks ───────────────────────────────────────────────────────

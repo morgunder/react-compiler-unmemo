@@ -436,31 +436,33 @@ export function processFile(filePath, { dryRun = false } = {}) {
 
   // Phase 3: Clean up imports
   if (changed) {
-    // Handle: import React, { useMemo, useCallback, ... } from "react"; (single or double quotes)
+    // Handle: import React, { useMemo, useCallback, ... } from "react"; (single or double quotes, semicolon optional)
     content = content.replace(
-      /import React, \{([^}]*)\} from (["'])react\2\s*;/g,
+      /import React, \{([^}]*)\} from (["'])react\2[^\S\n]*;?/g,
       (match, imports, quote) => {
+        const semi = match.trimEnd().endsWith(";") ? ";" : "";
         const cleaned = imports
           .split(",")
           .map((s) => s.trim())
           .filter((s) => s && s !== "useMemo" && s !== "useCallback")
           .join(", ");
-        if (!cleaned) return `import React from ${quote}react${quote};`;
-        return `import React, { ${cleaned} } from ${quote}react${quote};`;
+        if (!cleaned) return `import React from ${quote}react${quote}${semi}`;
+        return `import React, { ${cleaned} } from ${quote}react${quote}${semi}`;
       },
     );
 
-    // Handle: import { useMemo, useCallback, ... } from "react"; (single or double quotes)
+    // Handle: import { useMemo, useCallback, ... } from "react"; (single or double quotes, semicolon optional)
     content = content.replace(
-      /import \{([^}]*)\} from (["'])react\2\s*;/g,
+      /import \{([^}]*)\} from (["'])react\2[^\S\n]*;?/g,
       (match, imports, quote) => {
+        const semi = match.trimEnd().endsWith(";") ? ";" : "";
         const cleaned = imports
           .split(",")
           .map((s) => s.trim())
           .filter((s) => s && s !== "useMemo" && s !== "useCallback")
           .join(", ");
         if (!cleaned) return ""; // Remove empty import entirely
-        return `import { ${cleaned} } from ${quote}react${quote};`;
+        return `import { ${cleaned} } from ${quote}react${quote}${semi}`;
       },
     );
 
