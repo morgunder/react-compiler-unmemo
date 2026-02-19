@@ -367,7 +367,7 @@ export function processFile(filePath, { dryRun = false } = {}) {
   if (changed) {
     // Handle: import React, { useMemo, useCallback, ... } from "react"; (single or double quotes)
     content = content.replace(
-      /import React, \{([^}]*)\} from (["'])react\2;/g,
+      /import React, \{([^}]*)\} from (["'])react\2\s*;/g,
       (match, imports, quote) => {
         const cleaned = imports
           .split(",")
@@ -381,7 +381,7 @@ export function processFile(filePath, { dryRun = false } = {}) {
 
     // Handle: import { useMemo, useCallback, ... } from "react"; (single or double quotes)
     content = content.replace(
-      /import \{([^}]*)\} from (["'])react\2;/g,
+      /import \{([^}]*)\} from (["'])react\2\s*;/g,
       (match, imports, quote) => {
         const cleaned = imports
           .split(",")
