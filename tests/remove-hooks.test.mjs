@@ -366,9 +366,9 @@ const val = parse("[test]");`;
   });
 });
 
-// ─── Comment awareness ──────────────────────────────────────────────────────
+// ─── Comment and string awareness ───────────────────────────────────────────
 
-describe("comment awareness", () => {
+describe("comment and string awareness", () => {
   it("skips useMemo inside a line comment", () => {
     const input = `import { useMemo } from "react";
 // const old = useMemo(() => 1, []);
@@ -380,6 +380,46 @@ const active = true;`;
     const input = `import { useMemo } from "react";
 /* const old = useMemo(() => 1, []); */
 const active = true;`;
+    assert.equal(transform(input), input);
+  });
+
+  it("skips useMemo pattern inside a double-quoted string", () => {
+    const input = `const msg = "The code uses useMemo<Type>(value)";`;
+    assert.equal(transform(input), input);
+  });
+
+  it("skips useCallback pattern inside a single-quoted string", () => {
+    const input = `const msg = 'Remove useCallback(() => fn, [deps])';`;
+    assert.equal(transform(input), input);
+  });
+
+  it("skips useMemo( pattern inside a template literal", () => {
+    const input = `const msg = \`uses useMemo(() => val, [dep])\`;`;
+    assert.equal(transform(input), input);
+  });
+
+  it("skips useMemo<Generic> inside a string but transforms real code", () => {
+    const input = `import { useMemo } from "react";
+const docs = "useMemo<Foo>(bar)";
+const value = useMemo(() => compute(a), [a]);`;
+    const expected = `
+const docs = "useMemo<Foo>(bar)";
+const value = compute(a);`;
+    assert.equal(transform(input), expected);
+  });
+
+  it("skips useCallback inside a string but transforms real code", () => {
+    const input = `import { useCallback } from "react";
+const docs = "useCallback((x) => x, [])";
+const handler = useCallback((e) => handle(e), [handle]);`;
+    const expected = `
+const docs = "useCallback((x) => x, [])";
+const handler = (e) => handle(e);`;
+    assert.equal(transform(input), expected);
+  });
+
+  it("handles escaped quotes in strings containing hook patterns", () => {
+    const input = `const msg = "She said \\"useMemo(() => 1, [])\\"";`;
     assert.equal(transform(input), input);
   });
 });

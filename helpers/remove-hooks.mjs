@@ -188,6 +188,67 @@ export function isInsideComment(content, idx) {
   return false;
 }
 
+/**
+ * Check if a position in the content is inside a string literal, template
+ * literal, or comment. Scans from the start of the content to correctly
+ * track nested context.
+ */
+export function isInsideStringOrComment(content, idx) {
+  let i = 0;
+  while (i < idx) {
+    const ch = content[i];
+
+    // Line comment — skip to end of line
+    if (ch === "/" && content[i + 1] === "/") {
+      const eol = content.indexOf("\n", i + 2);
+      if (eol === -1) return true; // idx is in this comment (rest of file)
+      if (idx < eol) return true;
+      i = eol + 1;
+      continue;
+    }
+
+    // Block comment — skip to closing */
+    if (ch === "/" && content[i + 1] === "*") {
+      const close = content.indexOf("*/", i + 2);
+      if (close === -1) return true; // unclosed block comment
+      if (idx < close + 2) return true;
+      i = close + 2;
+      continue;
+    }
+
+    // Template literal
+    if (ch === "`") {
+      i++;
+      let templateDepth = 0;
+      while (i < content.length) {
+        if (content[i] === "\\" ) { i += 2; continue; }
+        if (content[i] === "`" && templateDepth === 0) { i++; break; }
+        if (content[i] === "$" && content[i + 1] === "{") { templateDepth++; i += 2; continue; }
+        if (content[i] === "}" && templateDepth > 0) { templateDepth--; i++; continue; }
+        if (i === idx) return true;
+        i++;
+      }
+      continue;
+    }
+
+    // String literals
+    if (ch === "'" || ch === '"') {
+      const quote = ch;
+      i++;
+      while (i < content.length) {
+        if (content[i] === "\\" ) { i += 2; continue; }
+        if (content[i] === quote) { i++; break; }
+        if (i === idx) return true;
+        i++;
+      }
+      continue;
+    }
+
+    i++;
+  }
+  return false;
+}
+
 // ─── Main Processing ─────────────────────────────────────────────────────────
 
 export function processFile(filePath, { dryRun = false } = {}) {
@@ -218,7 +279,7 @@ export function processFile(filePath, { dryRun = false } = {}) {
         }
       }
 
-      if (isInsideComment(content, hookIdx)) {
+      if (isInsideStringOrComment(content, hookIdx)) {
         searchFrom = hookIdx + 1;
         continue;
       }
@@ -267,27 +328,31 @@ export function processFile(filePath, { dryRun = false } = {}) {
     let found = false;
 
     for (const pattern of patterns) {
-      const idx = content.indexOf(pattern);
-      if (idx === -1) continue;
+      // Search forward, skipping occurrences inside strings/comments
+      let searchFrom = 0;
+      let idx = -1;
+      while (true) {
+        const candidate = content.indexOf(pattern, searchFrom);
+        if (candidate === -1) break;
 
-      // Skip if inside a comment
-      if (isInsideComment(content, idx)) {
-        // Replace the pattern temporarily to avoid infinite loop
-        // We'll restore comments at the end... actually just skip
-        // by searching for the next occurrence
-        const nextIdx = content.indexOf(pattern, idx + pattern.length);
-        if (nextIdx === -1) continue;
-      }
-
-      // Make sure this isn't part of a larger identifier (e.g. "myUseMemo(")
-      if (idx > 0 && !pattern.startsWith("React.")) {
-        const prevChar = content[idx - 1];
-        if (/[a-zA-Z0-9_$]/.test(prevChar)) {
+        if (isInsideStringOrComment(content, candidate)) {
+          searchFrom = candidate + pattern.length;
           continue;
         }
-      }
 
-      if (isInsideComment(content, idx)) continue;
+        // Make sure this isn't part of a larger identifier (e.g. "myUseMemo(")
+        if (candidate > 0 && !pattern.startsWith("React.")) {
+          const prevChar = content[candidate - 1];
+          if (/[a-zA-Z0-9_$]/.test(prevChar)) {
+            searchFrom = candidate + pattern.length;
+            continue;
+          }
+        }
+
+        idx = candidate;
+        break;
+      }
+      if (idx === -1) continue;
 
       const openParenIdx = idx + pattern.length - 1;
       const closeParenIdx = findClosingParen(content, openParenIdx);
