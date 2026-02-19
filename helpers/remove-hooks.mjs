@@ -84,6 +84,22 @@ export function findClosingParen(content, startIdx) {
 
     if (inString || inTemplate) continue;
 
+    // Skip line comments
+    if (ch === "/" && content[i + 1] === "/") {
+      const eol = content.indexOf("\n", i + 2);
+      if (eol === -1) return -1;
+      i = eol;
+      continue;
+    }
+
+    // Skip block comments
+    if (ch === "/" && content[i + 1] === "*") {
+      const close = content.indexOf("*/", i + 2);
+      if (close === -1) return -1;
+      i = close + 1;
+      continue;
+    }
+
     if (ch === "(") depth++;
     if (ch === ")") {
       depth--;
@@ -119,6 +135,22 @@ export function stripDepsArray(inner) {
       }
     }
     if (inString) continue;
+
+    // Skip line comments
+    if (ch === "/" && inner[i + 1] === "/") {
+      const eol = inner.indexOf("\n", i + 2);
+      if (eol === -1) break;
+      i = eol;
+      continue;
+    }
+
+    // Skip block comments
+    if (ch === "/" && inner[i + 1] === "*") {
+      const close = inner.indexOf("*/", i + 2);
+      if (close === -1) break;
+      i = close + 1;
+      continue;
+    }
 
     if (ch === "(" || ch === "[" || ch === "{") depth++;
     if (ch === ")" || ch === "]" || ch === "}") depth--;
@@ -157,6 +189,22 @@ export function unwrapArrowFn(inner) {
       }
     }
     if (inString) continue;
+
+    // Skip line comments
+    if (ch === "/" && inner[i + 1] === "/") {
+      const eol = inner.indexOf("\n", i + 2);
+      if (eol === -1) break;
+      i = eol;
+      continue;
+    }
+
+    // Skip block comments
+    if (ch === "/" && inner[i + 1] === "*") {
+      const close = inner.indexOf("*/", i + 2);
+      if (close === -1) break;
+      i = close + 1;
+      continue;
+    }
 
     if (ch === "(" || ch === "[" || ch === "{") depth++;
     if (ch === ")" || ch === "]" || ch === "}") depth--;
@@ -434,37 +482,53 @@ export function processFile(filePath, { dryRun = false } = {}) {
     if (!found) break;
   }
 
-  // Phase 3: Clean up imports
+  // Phase 3: Clean up imports (skip matches inside strings/comments)
   if (changed) {
-    // Handle: import React, { useMemo, useCallback, ... } from "react"; (single or double quotes, semicolon optional)
-    content = content.replace(
-      /import React, \{([^}]*)\} from (["'])react\2[^\S\n]*;?/g,
-      (match, imports, quote) => {
-        const semi = match.trimEnd().endsWith(";") ? ";" : "";
-        const cleaned = imports
-          .split(",")
-          .map((s) => s.trim())
-          .filter((s) => s && s !== "useMemo" && s !== "useCallback")
-          .join(", ");
-        if (!cleaned) return `import React from ${quote}react${quote}${semi}`;
-        return `import React, { ${cleaned} } from ${quote}react${quote}${semi}`;
+    const importPatterns = [
+      {
+        regex: /import React, \{([^}]*)\} from (["'])react\2[^\S\n]*;?/g,
+        replace: (match, imports, quote) => {
+          const semi = match.trimEnd().endsWith(";") ? ";" : "";
+          const cleaned = imports
+            .split(",")
+            .map((s) => s.trim())
+            .filter((s) => s && s !== "useMemo" && s !== "useCallback")
+            .join(", ");
+          if (!cleaned) return `import React from ${quote}react${quote}${semi}`;
+          return `import React, { ${cleaned} } from ${quote}react${quote}${semi}`;
+        },
       },
-    );
+      {
+        regex: /import \{([^}]*)\} from (["'])react\2[^\S\n]*;?/g,
+        replace: (match, imports, quote) => {
+          const semi = match.trimEnd().endsWith(";") ? ";" : "";
+          const cleaned = imports
+            .split(",")
+            .map((s) => s.trim())
+            .filter((s) => s && s !== "useMemo" && s !== "useCallback")
+            .join(", ");
+          if (!cleaned) return ""; // Remove empty import entirely
+          return `import { ${cleaned} } from ${quote}react${quote}${semi}`;
+        },
+      },
+    ];
 
-    // Handle: import { useMemo, useCallback, ... } from "react"; (single or double quotes, semicolon optional)
-    content = content.replace(
-      /import \{([^}]*)\} from (["'])react\2[^\S\n]*;?/g,
-      (match, imports, quote) => {
-        const semi = match.trimEnd().endsWith(";") ? ";" : "";
-        const cleaned = imports
-          .split(",")
-          .map((s) => s.trim())
-          .filter((s) => s && s !== "useMemo" && s !== "useCallback")
-          .join(", ");
-        if (!cleaned) return ""; // Remove empty import entirely
-        return `import { ${cleaned} } from ${quote}react${quote}${semi}`;
-      },
-    );
+    for (const { regex, replace } of importPatterns) {
+      let result = "";
+      let lastIndex = 0;
+      let m;
+      regex.lastIndex = 0;
+      while ((m = regex.exec(content)) !== null) {
+        if (isInsideStringOrComment(content, m.index)) {
+          continue;
+        }
+        result += content.slice(lastIndex, m.index);
+        result += replace(m[0], m[1], m[2]);
+        lastIndex = m.index + m[0].length;
+      }
+      result += content.slice(lastIndex);
+      content = result;
+    }
 
     // Clean up any resulting blank lines from removed imports
     content = content.replace(/\n\n\n+/g, "\n\n");

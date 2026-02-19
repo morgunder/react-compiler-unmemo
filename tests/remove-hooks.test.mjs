@@ -348,6 +348,26 @@ import { useEffect, useRef, useState } from "react"
 const value = compute(a);`;
     assert.equal(transform(input), expected);
   });
+
+  it("does not modify import-like pattern inside a string", () => {
+    const input = `import { useMemo } from "react";
+const code = 'import { useMemo } from "react"';
+const value = useMemo(() => 1, []);`;
+    const expected = `
+const code = 'import { useMemo } from "react"';
+const value = 1;`;
+    assert.equal(transform(input), expected);
+  });
+
+  it("does not modify import-like pattern inside a comment", () => {
+    const input = `import { useMemo } from "react";
+// import { useMemo, useState } from "react";
+const value = useMemo(() => 1, []);`;
+    const expected = `
+// import { useMemo, useState } from "react";
+const value = 1;`;
+    assert.equal(transform(input), expected);
+  });
 });
 
 // ─── Multi-line hooks ───────────────────────────────────────────────────────
@@ -397,6 +417,103 @@ const result = (() => {
   return sorted;
 })();`;
     assert.equal(transform(input), expected);
+  });
+});
+
+// ─── Hooks with embedded comments ───────────────────────────────────────────
+
+describe("hooks with embedded comments", () => {
+  it("useMemo with // comment containing apostrophe in body", () => {
+    const input = `import { useMemo } from "react"
+const displayOptions = useMemo(() => {
+    const options = [...brandOptions];
+    // Add recent brands that aren't already in the list
+    recentBrands.forEach((recent) => {
+      if (!options.find(opt => opt.id === recent.id)) {
+        options.push(recent);
+      }
+    });
+    return options;
+  }, [brandOptions, recentBrands]);`;
+    const expected = `
+const displayOptions = (() => {
+    const options = [...brandOptions];
+    // Add recent brands that aren't already in the list
+    recentBrands.forEach((recent) => {
+      if (!options.find(opt => opt.id === recent.id)) {
+        options.push(recent);
+      }
+    });
+    return options;
+  })();`;
+    assert.equal(transform(input), expected);
+  });
+
+  it("useMemo with multiple // comments containing quotes", () => {
+    const input = `import { useMemo } from "react"
+const value = useMemo(() => {
+    // This won't break "anymore"
+    const x = compute();
+    // It's fixed now
+    return x;
+  }, [compute]);`;
+    const expected = `
+const value = (() => {
+    // This won't break "anymore"
+    const x = compute();
+    // It's fixed now
+    return x;
+  })();`;
+    assert.equal(transform(input), expected);
+  });
+
+  it("useMemo with /* */ block comment containing apostrophe", () => {
+    const input = `import { useMemo } from "react"
+const value = useMemo(() => {
+    /* This won't break */
+    return compute();
+  }, [compute]);`;
+    const expected = `
+const value = (() => {
+    /* This won't break */
+    return compute();
+  })();`;
+    assert.equal(transform(input), expected);
+  });
+
+  it("useCallback with // comment containing apostrophe in body", () => {
+    const input = `import { useCallback } from "react"
+const handler = useCallback((event) => {
+    // Don't forget to prevent default
+    event.preventDefault();
+    navigate(event.target.href);
+  }, [navigate]);`;
+    const expected = `
+const handler = (event) => {
+    // Don't forget to prevent default
+    event.preventDefault();
+    navigate(event.target.href);
+  };`;
+    assert.equal(transform(input), expected);
+  });
+
+  it("useMemo with // comment before hook and inside body", () => {
+    const input = `import { useMemo } from "react"
+  // Combine recent brands with search results
+  const displayOptions = useMemo(() => {
+    const options = [...items];
+    // Filter items that aren't active
+    return options.filter(o => o.active);
+  }, [items]);`;
+    const expected = `
+  // Combine recent brands with search results
+  const displayOptions = options.filter(o => o.active);`;
+    // Note: single return after stripping multi-statement check
+    // The body has const + return, so it becomes IIFE
+    const result = transform(input);
+    assert.ok(result.includes("// Combine recent brands"), "should preserve comment before hook");
+    assert.ok(!result.includes("useMemo"), "should remove useMemo");
+    assert.ok(result.includes("options.filter"), "should contain the expression");
   });
 });
 

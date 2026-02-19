@@ -23,13 +23,24 @@
  *   npx react-compiler-unmemo /absolute/path/to/project --files "app/**\/*.tsx"
  */
 
+import fs from "fs";
 import path from "path";
+import { fileURLToPath } from "url";
+
 import { run as fixTypes } from "./helpers/fix-type-annotations.mjs";
 import { run as removeHooks } from "./helpers/remove-hooks.mjs";
 
 // ─── CLI ─────────────────────────────────────────────────────────────────────
 
 const args = process.argv.slice(2);
+
+if (args.includes("--version") || args.includes("-v")) {
+  const __dirname = path.dirname(fileURLToPath(import.meta.url));
+  const pkg = JSON.parse(fs.readFileSync(path.join(__dirname, "package.json"), "utf8"));
+  console.log(pkg.version);
+  process.exit(0);
+}
+
 const write = args.includes("--write");
 const dryRun = !write;
 const verbose = args.includes("--verbose");
@@ -52,6 +63,7 @@ if (!targetDir) {
   console.log("  --verbose       Show detailed output per transformation");
   console.log("  --files <glob>  File glob pattern (default: src/**/*.{tsx,ts})");
   console.log("  --skip-fix      Skip the type annotation fix step");
+  console.log("  --version, -v   Show version number");
   console.log();
   console.log("Examples:");
   console.log("  npx react-compiler-unmemo ./my-react-app                # preview (safe default)");
