@@ -325,6 +325,8 @@ export function processFile(filePath, { dryRun = false } = {}) {
   const transformations = [];
 
   // Phase 1: Strip generic type params like useMemo<ColumnsType<Foo>>( -> useMemo(
+  // Store stripped generics so Phase 2 can apply them as type annotations
+  const strippedGenerics = new Map();
   const hookNames = [
     "React.useMemo",
     "React.useCallback",
@@ -373,6 +375,8 @@ export function processFile(filePath, { dryRun = false } = {}) {
       const genericType = content.slice(angleStart + 1, angleEnd);
       content =
         content.slice(0, angleStart) + content.slice(angleEnd + 1);
+      // After stripping, the hook call starts at hookIdx — store the generic
+      strippedGenerics.set(hookIdx, genericType);
       changed = true;
       transformations.push({
         type: "strip-generic",
@@ -469,15 +473,23 @@ export function processFile(filePath, { dryRun = false } = {}) {
         replacement = withoutDeps;
       }
 
-      const beforeMatch = content.slice(
-        Math.max(0, idx - 50),
-        idx,
-      );
       const lineNum =
         content.slice(0, idx).split("\n").length;
 
+      // If Phase 1 stripped a generic type, inject it as a type annotation
+      const genericType = strippedGenerics.get(idx);
+      let prefix = content.slice(0, idx);
+      if (genericType) {
+        const declMatch = prefix.match(/((?:const|let|var)\s+\w+)\s*=\s*$/);
+        if (declMatch) {
+          const insertPos = prefix.length - declMatch[0].length + declMatch[1].length;
+          prefix = prefix.slice(0, insertPos) + ": " + genericType + prefix.slice(insertPos);
+        }
+        strippedGenerics.delete(idx);
+      }
+
       content =
-        content.slice(0, idx) +
+        prefix +
         replacement +
         content.slice(closeParenIdx + 1);
       changed = true;

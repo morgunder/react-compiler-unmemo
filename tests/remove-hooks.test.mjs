@@ -165,7 +165,7 @@ describe("generic type parameter stripping", () => {
     const input = `import { useMemo } from "react";
 const columns = useMemo<ColumnsType>(() => [col1, col2], [col1, col2]);`;
     const expected = `
-const columns = [col1, col2];`;
+const columns: ColumnsType = [col1, col2];`;
     assert.equal(transform(input), expected);
   });
 
@@ -173,7 +173,7 @@ const columns = [col1, col2];`;
     const input = `import { useMemo } from "react";
 const columns = useMemo<ColumnsType<TaxArea>>(() => [col1, col2], [col1, col2]);`;
     const expected = `
-const columns = [col1, col2];`;
+const columns: ColumnsType<TaxArea> = [col1, col2];`;
     assert.equal(transform(input), expected);
   });
 
@@ -181,7 +181,7 @@ const columns = [col1, col2];`;
     const input = `import { useMemo } from "react";
 const columns = useMemo<ColumnsType<Foo<Bar>>>(() => [col1], []);`;
     const expected = `
-const columns = [col1];`;
+const columns: ColumnsType<Foo<Bar>> = [col1];`;
     assert.equal(transform(input), expected);
   });
 
@@ -189,7 +189,7 @@ const columns = [col1];`;
     const input = `import React from "react";
 const columns = React.useMemo<ColumnsType<TaxArea>>(() => [col1], []);`;
     const expected = `import React from "react";
-const columns = [col1];`;
+const columns: ColumnsType<TaxArea> = [col1];`;
     assert.equal(transform(input), expected);
   });
 });
