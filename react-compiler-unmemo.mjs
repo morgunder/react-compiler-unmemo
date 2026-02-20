@@ -34,7 +34,7 @@ import { run as removeHooks } from "./helpers/remove-hooks.mjs";
 
 const args = process.argv.slice(2);
 
-if (args.includes("--version") || args.includes("-v")) {
+if (args.includes("--version") || args.includes("-v") || args[0] === "version") {
   const __dirname = path.dirname(fileURLToPath(import.meta.url));
   const pkg = JSON.parse(fs.readFileSync(path.join(__dirname, "package.json"), "utf8"));
   console.log(pkg.version);
@@ -63,7 +63,7 @@ if (!targetDir) {
   console.log("  --verbose       Show detailed output per transformation");
   console.log("  --files <glob>  File glob pattern (default: src/**/*.{tsx,ts})");
   console.log("  --skip-fix      Skip the type annotation fix step");
-  console.log("  --version, -v   Show version number");
+  console.log("  --version, -v   Show version number (use 'version' subcommand with npx)");
   console.log();
   console.log("Examples:");
   console.log("  npx react-compiler-unmemo ./my-react-app                # preview (safe default)");

@@ -349,6 +349,22 @@ const value = compute(a);`;
     assert.equal(transform(input), expected);
   });
 
+  it("cleans useMemo/useCallback from imports even when no calls exist", () => {
+    const input = `import { useEffect, useMemo, useCallback, useState } from "react";
+const active = true;`;
+    const expected = `import { useEffect, useState } from "react";
+const active = true;`;
+    assert.equal(transform(input), expected);
+  });
+
+  it("removes entire import when only useMemo/useCallback and no calls exist", () => {
+    const input = `import { useMemo } from "react";
+const active = true;`;
+    const expected = `
+const active = true;`;
+    assert.equal(transform(input), expected);
+  });
+
   it("does not modify import-like pattern inside a string", () => {
     const input = `import { useMemo } from "react";
 const code = 'import { useMemo } from "react"';
@@ -517,6 +533,34 @@ const handler = (event) => {
   });
 });
 
+// ─── Escaped quote edge cases ────────────────────────────────────────────────
+
+describe("escaped quote edge cases", () => {
+  it("handles double backslash before closing quote in useMemo body", () => {
+    const input = `import { useMemo } from "react";
+const val = useMemo(() => "test\\\\", []);`;
+    const expected = `
+const val = "test\\\\";`;
+    assert.equal(transform(input), expected);
+  });
+
+  it("handles double backslash before closing quote in useCallback body", () => {
+    const input = `import { useCallback } from "react";
+const fn = useCallback(() => process("path\\\\"), []);`;
+    const expected = `
+const fn = () => process("path\\\\");`;
+    assert.equal(transform(input), expected);
+  });
+
+  it("handles string ending with double backslash followed by comma in deps", () => {
+    const input = `import { useMemo } from "react";
+const val = useMemo(() => "path\\\\", []);`;
+    const expected = `
+const val = "path\\\\";`;
+    assert.equal(transform(input), expected);
+  });
+});
+
 // ─── Strings and template literals inside hooks ─────────────────────────────
 
 describe("strings and template literals", () => {
@@ -552,14 +596,20 @@ describe("comment and string awareness", () => {
     const input = `import { useMemo } from "react";
 // const old = useMemo(() => 1, []);
 const active = true;`;
-    assert.equal(transform(input), input);
+    const expected = `
+// const old = useMemo(() => 1, []);
+const active = true;`;
+    assert.equal(transform(input), expected);
   });
 
   it("skips useMemo inside a block comment", () => {
     const input = `import { useMemo } from "react";
 /* const old = useMemo(() => 1, []); */
 const active = true;`;
-    assert.equal(transform(input), input);
+    const expected = `
+/* const old = useMemo(() => 1, []); */
+const active = true;`;
+    assert.equal(transform(input), expected);
   });
 
   it("skips useMemo pattern inside a double-quoted string", () => {

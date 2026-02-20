@@ -25,6 +25,20 @@ import path from "path";
 // ─── Core Parsing Helpers ────────────────────────────────────────────────────
 
 /**
+ * Check if the character at idx is escaped by counting consecutive
+ * backslashes before it. Odd count means escaped, even means not.
+ */
+export function isEscaped(str, idx) {
+  let count = 0;
+  let pos = idx - 1;
+  while (pos >= 0 && str[pos] === "\\") {
+    count++;
+    pos--;
+  }
+  return count % 2 === 1;
+}
+
+/**
  * Find the matching closing paren for an opening paren at startIdx.
  * Counts nested parens/brackets/braces and respects strings and template literals.
  */
@@ -37,10 +51,9 @@ export function findClosingParen(content, startIdx) {
 
   for (let i = startIdx; i < content.length; i++) {
     const ch = content[i];
-    const prev = i > 0 ? content[i - 1] : "";
 
     // Handle escape sequences
-    if ((inString || inTemplate) && ch === "\\" && prev !== "\\") {
+    if ((inString || inTemplate) && ch === "\\" && !isEscaped(content, i)) {
       i++; // skip next char
       continue;
     }
@@ -124,7 +137,7 @@ export function stripDepsArray(inner) {
     const ch = inner[i];
 
     // Simple string tracking
-    if ((ch === '"' || ch === "'" || ch === "`") && (i === 0 || inner[i - 1] !== "\\")) {
+    if ((ch === '"' || ch === "'" || ch === "`") && !isEscaped(inner, i)) {
       if (!inString) {
         inString = true;
         stringChar = ch;
@@ -178,7 +191,7 @@ export function unwrapArrowFn(inner) {
   for (let i = 0; i < inner.length - 1; i++) {
     const ch = inner[i];
 
-    if ((ch === '"' || ch === "'" || ch === "`") && (i === 0 || inner[i - 1] !== "\\")) {
+    if ((ch === '"' || ch === "'" || ch === "`") && !isEscaped(inner, i)) {
       if (!inString) {
         inString = true;
         stringChar = ch;
@@ -482,8 +495,8 @@ export function processFile(filePath, { dryRun = false } = {}) {
     if (!found) break;
   }
 
-  // Phase 3: Clean up imports (skip matches inside strings/comments)
-  if (changed) {
+  // Phase 3: Clean up imports (always run — hooks are unnecessary with React Compiler)
+  {
     const importPatterns = [
       {
         regex: /import React, \{([^}]*)\} from (["'])react\2[^\S\n]*;?/g,
@@ -532,6 +545,11 @@ export function processFile(filePath, { dryRun = false } = {}) {
 
     // Clean up any resulting blank lines from removed imports
     content = content.replace(/\n\n\n+/g, "\n\n");
+  }
+
+  // Track if imports were cleaned even without hook call changes
+  if (content !== original) {
+    changed = true;
   }
 
   if (changed && !dryRun) {
