@@ -325,8 +325,8 @@ export function processFile(filePath, { dryRun = false } = {}) {
   const transformations = [];
 
   // Phase 1: Strip generic type params like useMemo<ColumnsType<Foo>>( -> useMemo(
-  // Store stripped generics so Phase 2 can apply them as type annotations
-  const strippedGenerics = new Map();
+  // Generics are replaced with placeholder tokens that Phase 2 consumes
+  const strippedGenerics = [];
   const hookNames = [
     "React.useMemo",
     "React.useCallback",
@@ -373,10 +373,12 @@ export function processFile(filePath, { dryRun = false } = {}) {
       }
 
       const genericType = content.slice(angleStart + 1, angleEnd);
+      // Strip the generic and insert a placeholder token before the hook name
+      const placeholderIdx = strippedGenerics.length;
+      strippedGenerics.push(genericType);
+      const placeholder = `/*UNMEMO ${placeholderIdx}*/`;
       content =
-        content.slice(0, angleStart) + content.slice(angleEnd + 1);
-      // After stripping, the hook call starts at hookIdx — store the generic
-      strippedGenerics.set(hookIdx, genericType);
+        content.slice(0, hookIdx) + placeholder + content.slice(hookIdx, angleStart) + content.slice(angleEnd + 1);
       changed = true;
       transformations.push({
         type: "strip-generic",
@@ -476,16 +478,21 @@ export function processFile(filePath, { dryRun = false } = {}) {
       const lineNum =
         content.slice(0, idx).split("\n").length;
 
-      // If Phase 1 stripped a generic type, inject it as a type annotation
-      const genericType = strippedGenerics.get(idx);
+      // If Phase 1 left a generic type placeholder, extract and remove it
       let prefix = content.slice(0, idx);
-      if (genericType) {
-        const declMatch = prefix.match(/((?:const|let|var)\s+\w+)\s*=\s*$/);
-        if (declMatch) {
-          const insertPos = prefix.length - declMatch[0].length + declMatch[1].length;
-          prefix = prefix.slice(0, insertPos) + ": " + genericType + prefix.slice(insertPos);
+      const placeholderMatch = prefix.match(/\/\*UNMEMO (\d+)\*\/\s*$/);
+      if (placeholderMatch) {
+        const genericType = strippedGenerics[parseInt(placeholderMatch[1], 10)];
+        // Remove the placeholder from prefix
+        prefix = prefix.slice(0, placeholderMatch.index);
+        // Inject type annotation into variable declaration
+        if (genericType) {
+          const declMatch = prefix.match(/((?:const|let|var)\s+\w+)\s*=\s*$/);
+          if (declMatch) {
+            const insertPos = prefix.length - declMatch[0].length + declMatch[1].length;
+            prefix = prefix.slice(0, insertPos) + ": " + genericType + prefix.slice(insertPos);
+          }
         }
-        strippedGenerics.delete(idx);
       }
 
       content =

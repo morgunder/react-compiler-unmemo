@@ -192,6 +192,18 @@ const columns = React.useMemo<ColumnsType<TaxArea>>(() => [col1], []);`;
 const columns: ColumnsType<TaxArea> = [col1];`;
     assert.equal(transform(input), expected);
   });
+
+  it("multiple hooks with generics in same file", () => {
+    const input = `import { useMemo } from "react";
+const a = useMemo<TypeA>(() => 1, []);
+const b = useMemo<TypeB>(() => 2, []);
+const c = useMemo<Foo<Bar>>(() => 3, []);`;
+    const expected = `
+const a: TypeA = 1;
+const b: TypeB = 2;
+const c: Foo<Bar> = 3;`;
+    assert.equal(transform(input), expected);
+  });
 });
 
 // ─── Import cleanup ─────────────────────────────────────────────────────────
